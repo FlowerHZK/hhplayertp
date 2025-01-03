@@ -2,6 +2,8 @@ package org.hhlaowang.hhPlayerTp;
 
 import me.clip.placeholderapi.PlaceholderAPI;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.util.HSVLike;
@@ -13,6 +15,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
@@ -23,8 +26,11 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 
+import java.io.File;
 import java.util.*;
 import java.util.stream.Collectors;
+
+import static org.hhlaowang.hhPlayerTp.PlayerGuiListen.splitStringToComponents;
 
 public final class HhPlayerTp extends JavaPlugin implements CommandExecutor {
     static public int guiLine;                          // GUI的行数
@@ -32,6 +38,12 @@ public final class HhPlayerTp extends JavaPlugin implements CommandExecutor {
     static public List<Integer> prevButtons;            // 上一页按钮的位置
     static public List<Integer> nextButtons;            // 下一页按钮的位置
     static public List<Integer> playerButtons;          // 玩家按钮的位置(点击之后发出tpa指令)
+    static public String playerCmdLeft;
+    static public String playerCmdRight;
+    static public List<Component> playerChatMessage;    // 玩家聊天框内容
+    static public List<String> playerChatBoxText;       // 玩家聊天框内容, 原始文本
+
+
     static public Material prevButtonMaterial;          // 上一页按钮的材质
     static public Material nextButtonMaterial;          // 下一页按钮的材质
     static public Integer prevButtonCustomModelData;    // 自定义模型数据
@@ -81,7 +93,7 @@ public final class HhPlayerTp extends JavaPlugin implements CommandExecutor {
     public void onEnable() {
         // 初始化日志记录
         Log.Init("[" + this.getName() + "]");
-        Log.info("plugin name = " + this.getName());
+
         // 设置指令处理
         PluginCommand pluginCommand = Bukkit.getPluginCommand("hhPlayerTp");
         if(pluginCommand != null) {
@@ -109,17 +121,32 @@ public final class HhPlayerTp extends JavaPlugin implements CommandExecutor {
         nextButtonCustomModelData = 0;
         cmdButtonMaps = new HashMap<>();
 
-
+        Log.info("--------------------hhplayertp--------------------");
         // 保存默认的config.yml文件, 如果已经存在了, 那么不需要创建
-        saveDefaultConfig();
+        FileConfiguration config;
+        File configFile = new File(this.getDataFolder(), "config.yml");
+        if (!configFile.exists()) {
+            saveDefaultConfig();
+            Log.warning("config.yml不存在, 正在生成默认的配置文件config.yml");
+            config = this.getConfig();
+        } else {
+            config = YamlConfiguration.loadConfiguration(configFile);
+        }
         // 获取配置版本
-        FileConfiguration config = getConfig();
         String version = config.getString("config_version");
         Log.info("配置文件版本 : " + version);
         // 获取玩家传送菜单标题
-        guiTitle = config.getString("playertp.title", "玩家传送");      // 菜单的标题
+        guiTitle = config.getString("playertp.title", "玩家传送");  // 菜单的标题
         Log.info("guiTitle = " + guiTitle);
-        guiLine = config.getInt("playertp.line", 6);                                                          // 菜单的行数
+        guiLine = config.getInt("playertp.line", 6);              // 菜单的行数
+
+        // 读取chat_box_text的内容, 并解析出详细信息
+        List<String> playerChatBoxText = config.getStringList("playertp.chat_box_text");
+        genPlayerChatMessage(null);     // 后续需要移动到玩家点击事件那里, 并且传入参数修改为, 请求发出者
+
+
+
+
         // 获取playertp下面的具体内容
         ConfigurationSection cfSec = config.getConfigurationSection("playertp.items");
         assert cfSec != null;
@@ -137,6 +164,16 @@ public final class HhPlayerTp extends JavaPlugin implements CommandExecutor {
                                 playerButtons = IntListStringToIntList(slotRange);
                             }
                             Log.info(itemName + " Index = " + playerButtons);
+                        }
+                        // 获取玩家的按钮需要执行的指令:   左键
+                        playerCmdLeft = cfSec.getString(itemName + ".left");
+                        if(playerCmdLeft != null) {
+                            Log.info(itemName + " LeftCmd = " + playerCmdLeft);
+                        }
+                        // 获取玩家的按钮需要执行的指令:   右键
+                        playerCmdRight = cfSec.getString(itemName + ".right");
+                        if(playerCmdRight != null) {
+                            Log.info(itemName + " RightCmd = " + playerCmdRight);
                         }
                     }
                     case "prev_page" -> {
@@ -200,7 +237,6 @@ public final class HhPlayerTp extends JavaPlugin implements CommandExecutor {
                         }else{
                             uiButton.material = Material.STONE;
                         }
-                        Log.info(itemName + " material = " + uiButton.material);
                         // 2. 获取cmd按钮的索引
                         String slotRange = cfSec.getString(itemName + ".slot");
                         if (slotRange != null) {
@@ -223,6 +259,38 @@ public final class HhPlayerTp extends JavaPlugin implements CommandExecutor {
                 }
             }
         }
+        Log.info("--------------------hhplayertp--------------------");
+    }
+
+    // 生成玩家聊天框内容
+    public static void genPlayerChatMessage(Player requestSender){
+        Component componentAccept =  ColorToCom.colorStringToComponent("[同意]");     // 用于判断是否存在同意的字符串
+        Component componentDeny =  ColorToCom.colorStringToComponent("[拒绝]");       // 用于判断是否存在拒绝的字符串
+        if(playerChatBoxText != null) {
+            playerChatMessage = new ArrayList<>();
+            for(String one : playerChatBoxText) {
+                List<Component> listSp = splitStringToComponents(one);        // 分割一行的内容, 如果有[同意] 或 [拒绝] 的话
+                Component componentOneLine = Component.text("");
+                for(Component c : listSp) {
+                    if(c.equals(componentAccept)){                          // 如果是同意的字符串, 那么需要添加点击事件
+                        Component MsgAccept = Component.text("[同意]").color(TextColor.color(0, 255, 0));           // 显示文本
+                        MsgAccept = MsgAccept.hoverEvent(HoverEvent.showText(ColorToCom.colorStringToComponent("点击同意传送")));     // 悬停文本
+                        MsgAccept = MsgAccept.clickEvent(ClickEvent.runCommand("/tpaccept"));                                       // 执行指令
+                        componentOneLine = componentOneLine.append(MsgAccept);
+                    }else if(c.equals(componentDeny)){                      // 如果是拒绝的字符串, 那么需要添加点击事件
+                        Component MsgDeny = Component.text("[拒绝]").color(TextColor.color(255, 0, 0));             // 显示文本
+                        MsgDeny = MsgDeny.hoverEvent(HoverEvent.showText(ColorToCom.colorStringToComponent("点击拒绝传送")));         // 悬停文本
+                        MsgDeny = MsgDeny.clickEvent(ClickEvent.runCommand("/tpdeny"));                                             // 执行指令
+                        componentOneLine = componentOneLine.append(MsgDeny);
+                    }else{                                                  // 如果都不是, 那么直接追加
+                        componentOneLine = componentOneLine.append(c);
+                    }
+                }
+                playerChatMessage.add(componentOneLine);
+            }
+        }else{
+            Log.info("listchat_box_text = null");
+        }
     }
 
     @Override
@@ -233,7 +301,7 @@ public final class HhPlayerTp extends JavaPlugin implements CommandExecutor {
         if(commandSender instanceof Player player) {
             if(args.length == 1){
                 if (args[0].equals("open")) {
-                    GuiOpen(player);
+                    GuiOpen(player);            // 打开菜单
                 }
             }
         }else{
@@ -252,26 +320,23 @@ public final class HhPlayerTp extends JavaPlugin implements CommandExecutor {
         // 1. 创建GUI
         playerGuiData.openedInventory = Bukkit.createInventory(new CustomHolder(), guiLine * 9,
                 MiniMessage.miniMessage().deserialize(PlaceholderAPI.setPlaceholders(null, guiTitle)));
-        // 2. 获取当前玩家列表
+        // 2.1 获取当前玩家列表
         playerGuiData.serverPlayerList.clear();
         Collection<? extends Player> players = Bukkit.getServer().getOnlinePlayers();
         for (Player player1 : players) {
             playerGuiData.serverPlayerList.add(player1.getName());
         }
-            // 使用sort()的Comparator.naturalOrder()比较器(自然顺序)方法对curPlayerSetFlags进行排序
+        // 2.2 使用sort()的Comparator.naturalOrder()比较器(自然顺序)方法对curPlayerSetFlags进行排序
         playerGuiData.serverPlayerList.sort(Comparator.naturalOrder());
         // 3. 设置当前页码为0
         playerGuiData.page = 0;
         // 4. 保存当前打卡开GUI的玩家
         playerGuiData.player = player;
         // 5. 刷新菜单
-        Log.warning("刷新菜单");
         GuiRefresh(playerGuiData);
-        Log.warning("打开菜单");
         // 6. 打开GUI
         player.openInventory(playerGuiData.openedInventory);
         // 7. 保存playerGuiData
-        Log.info("保存playerGuiData");
         playerGuiDatas.put(player, playerGuiData);
     }
 
