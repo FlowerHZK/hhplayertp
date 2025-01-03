@@ -1,0 +1,13 @@
+name: HhPlayerTp
+version: '1.0-SNAPSHOT'
+main: org.hhlaowang.hhPlayerTp.HhPlayerTp
+api-version: '1.20'
+
+commands:
+  hhplayertp: # 命令的基本名，请不要使用奇怪的字符！
+    #usage: "/hhPlayerTp" # 用法
+    description: "hhPlayerTp" # 描述
+    #permission: "hhResGui" # 需要的权限，通常不用
+    permission-message: "No permission" # 无权限返回的消息，通常不用
+    aliases: # 别名，方便玩家使用
+      - "hhptp"

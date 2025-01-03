@@ -1,0 +1,27 @@
+config_version: '1.0'
+
+# 玩家传送界面的配置
+playertp:
+  line: 6     # 菜单有多少行, 1-6
+  title: '玩家传送'
+  items:
+    'return':
+      display: '返回'
+      slot: [1]
+      material: 'KELP'
+      custom_model_data: 10008
+      fun: 'cmd'
+      cmd: 'trmenu open 主菜单'
+    'next_page':
+      slot: [52]
+      material: 'ARROW'
+      custom_model_data: 10008
+      fun: 'next_page'
+    'prev_page':
+      slot: [46]
+      material: 'ARROW'
+      custom_model_data: 10008
+      fun: 'prev_page'
+    'player':
+      slot: [9-44]
+      fun: 'player'
