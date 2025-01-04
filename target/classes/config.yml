@@ -25,14 +25,15 @@ playertp:
     'player':
       slot: [9-44]
       fun: 'player'
-      left: 'tpa %player_name%'
-      right: 'tpahere %player_name%'
-  chat_box_text:      # 玩家聊天框内容, 指的是: 点击之后发送到目标玩家的消息
+      left: 'tpa %player_name%'                     # %player_name% 表示目标玩家的名字
+      right: 'tpahere %player_name%'                # %player_name% 表示目标玩家的名字
+  chat_box_text:      # 玩家聊天框内容, 指的是: 点击之后发送到目标玩家的消息(支持papi变量, 变量所有者为   发出请求的玩家)
     - ''
-    - '&6  玩家[&4%player_name%&6]向你发送传送请求'
+    - '&6  玩家[&4%player_name%&6]向你发送传送请求'     # %player_name% 发出请求的玩家的名字
     - ''
-    - '  [accept]        [deny]'
+    - '  [accept]        [deny]'                    # [accept]是同意传送按钮 [deny]是拒绝传送按钮, 不要随便乱改, 你可以修改到其他行, 但是不能改为其他值
     - ':hhplayertptip:'
+  # 下面的就不支持papi变量了
   accept:
     show_text: '&2[同意]'                 # 显示文本
     hover_show_text: '&2点击同意传送'       # 悬停显示文本

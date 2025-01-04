@@ -42,6 +42,12 @@ public final class HhPlayerTp extends JavaPlugin implements CommandExecutor {
     static public String playerCmdRight;
     static public List<Component> playerChatMessage;    // 玩家聊天框内容
     static public List<String> playerChatBoxText;       // 玩家聊天框内容, 原始文本
+    static public Component acceptShowText;             // 同意按钮: 显示文本
+    static public Component acceptHoverShowText;        // 同意按钮: 悬停显示文本
+    static public String acceptClickCmd;                // 同意按钮: 点击执行指令
+    static public Component denyShowText;               // 拒绝按钮: 显示文本
+    static public Component denyHoverShowText;          // 拒绝按钮: 悬停显示文本
+    static public String denyClickCmd;                  // 拒绝按钮: 点击执行指令
 
 
     static public Material prevButtonMaterial;          // 上一页按钮的材质
@@ -103,6 +109,7 @@ public final class HhPlayerTp extends JavaPlugin implements CommandExecutor {
         }
         // 注册事件监听
         Bukkit.getPluginManager().registerEvents(new PlayerGuiListen(),this);
+
         // 读取配置文件
         loadConfig();
     }
@@ -135,16 +142,24 @@ public final class HhPlayerTp extends JavaPlugin implements CommandExecutor {
         // 获取配置版本
         String version = config.getString("config_version");
         Log.info("配置文件版本 : " + version);
-        // 获取玩家传送菜单标题
+        // 获取玩家传送菜单标题, 大小
         guiTitle = config.getString("playertp.title", "玩家传送");  // 菜单的标题
-        Log.info("guiTitle = " + guiTitle);
         guiLine = config.getInt("playertp.line", 6);              // 菜单的行数
 
-        // 读取chat_box_text的内容, 并解析出详细信息
-        List<String> playerChatBoxText = config.getStringList("playertp.chat_box_text");
-        genPlayerChatMessage(null);     // 后续需要移动到玩家点击事件那里, 并且传入参数修改为, 请求发出者
+        // 读取玩家聊天框的内容, 并解析出详细信息
+        playerChatBoxText = config.getStringList("playertp.chat_box_text");
 
+        String st = config.getString("playertp.accept.show_text", "&2[同意]");
+        acceptShowText = ColorToCom.colorStringToComponent(st);
+        st = config.getString("playertp.accept.hover_show_text", "&2点击同意传送");
+        acceptHoverShowText = ColorToCom.colorStringToComponent(st);
+        acceptClickCmd = config.getString("playertp.accept.cmd", "tpaccept");
 
+        st = config.getString("playertp.deny.show_text", "&4[拒绝]");
+        denyShowText = ColorToCom.colorStringToComponent(st);
+        st = config.getString("playertp.deny.hover_show_text", "&4点击拒绝传送");
+        denyHoverShowText = ColorToCom.colorStringToComponent(st);
+        denyClickCmd = config.getString("playertp.deny.cmd", "tpdeny");
 
 
         // 获取playertp下面的具体内容
@@ -163,20 +178,12 @@ public final class HhPlayerTp extends JavaPlugin implements CommandExecutor {
                             }else if(slotRange.contains("[") && slotRange.contains("]")){
                                 playerButtons = IntListStringToIntList(slotRange);
                             }
-                            Log.info(itemName + " Index = " + playerButtons);
                         }
                         // 获取玩家的按钮需要执行的指令:   左键
                         playerCmdLeft = cfSec.getString(itemName + ".left");
-                        if(playerCmdLeft != null) {
-                            Log.info(itemName + " LeftCmd = " + playerCmdLeft);
-                        }
                         // 获取玩家的按钮需要执行的指令:   右键
                         playerCmdRight = cfSec.getString(itemName + ".right");
-                        if(playerCmdRight != null) {
-                            Log.info(itemName + " RightCmd = " + playerCmdRight);
-                        }
-                    }
-                    case "prev_page" -> {
+                    }case "prev_page" -> {
                         // 获取Prev的按钮材质
                         String materialName = cfSec.getString(itemName + ".material");
                         if (materialName != null) {
@@ -184,7 +191,6 @@ public final class HhPlayerTp extends JavaPlugin implements CommandExecutor {
                         }else{
                             prevButtonMaterial = Material.ARROW;
                         }
-                        Log.info(itemName + " Material = " + prevButtonMaterial);
                         // 获取Prev的按钮位置
                         String slotRange = cfSec.getString(itemName + ".slot");
                         if (slotRange != null) {
@@ -194,12 +200,9 @@ public final class HhPlayerTp extends JavaPlugin implements CommandExecutor {
                                 prevButtons = IntListStringToIntList(slotRange);
                             }
                         }
-                        Log.info(itemName + " Index = " + prevButtons);
                         // 获取Prev的CustomModelData
                         prevButtonCustomModelData = cfSec.getInt(itemName + ".custom_model_data", 0);
-                        Log.info(itemName + " CustomModelData = " + prevButtonCustomModelData);
-                    }
-                    case "next_page" -> {
+                    }case "next_page" -> {
                         // 获取Prev的按钮材质
                         String materialName = cfSec.getString(itemName + ".material");
                         if (materialName != null) {
@@ -212,7 +215,6 @@ public final class HhPlayerTp extends JavaPlugin implements CommandExecutor {
                         }else{
                             nextButtonMaterial = Material.ARROW;
                         }
-                        Log.info(itemName + " Material = " + nextButtonMaterial);
                         // 获取Prev的按钮位置
                         String slotRange = cfSec.getString(itemName + ".slot");
                         if (slotRange != null) {
@@ -222,12 +224,9 @@ public final class HhPlayerTp extends JavaPlugin implements CommandExecutor {
                                 nextButtons = IntListStringToIntList(slotRange);
                             }
                         }
-                        Log.info(itemName + " Index = " + nextButtons);
                         // 获取Next的CustomModelData
                         nextButtonCustomModelData = cfSec.getInt(itemName + ".custom_model_data", 0);
-                        Log.info(itemName + " CustomModelData = " + nextButtonCustomModelData);
-                    }
-                    case "cmd" -> {
+                    }case "cmd" -> {
                         UiButton uiButton = new UiButton();
                         // 1. 获取cmd按钮的材质
                         String materialName = cfSec.getString(itemName + ".material");
@@ -264,23 +263,24 @@ public final class HhPlayerTp extends JavaPlugin implements CommandExecutor {
 
     // 生成玩家聊天框内容
     public static void genPlayerChatMessage(Player requestSender){
-        Component componentAccept =  ColorToCom.colorStringToComponent("[同意]");     // 用于判断是否存在同意的字符串
-        Component componentDeny =  ColorToCom.colorStringToComponent("[拒绝]");       // 用于判断是否存在拒绝的字符串
+        Component componentAccept =  ColorToCom.colorStringToComponent("[accept]");     // 用于判断是否存在同意的字符串
+        Component componentDeny =  ColorToCom.colorStringToComponent("[deny]");       // 用于判断是否存在拒绝的字符串
         if(playerChatBoxText != null) {
             playerChatMessage = new ArrayList<>();
             for(String one : playerChatBoxText) {
-                List<Component> listSp = splitStringToComponents(one);        // 分割一行的内容, 如果有[同意] 或 [拒绝] 的话
+                one = PlaceholderAPI.setPlaceholders(requestSender, one);       // 先通过papi解析出文本
+                List<Component> listSp = splitStringToComponents(one);          // 如果有[accept] 或 [deny] 的话, 分割一行的内容, 最后再通过格式化(&转§再转颜色)转为转为Components
                 Component componentOneLine = Component.text("");
                 for(Component c : listSp) {
                     if(c.equals(componentAccept)){                          // 如果是同意的字符串, 那么需要添加点击事件
-                        Component MsgAccept = Component.text("[同意]").color(TextColor.color(0, 255, 0));           // 显示文本
-                        MsgAccept = MsgAccept.hoverEvent(HoverEvent.showText(ColorToCom.colorStringToComponent("点击同意传送")));     // 悬停文本
-                        MsgAccept = MsgAccept.clickEvent(ClickEvent.runCommand("/tpaccept"));                                       // 执行指令
+                        Component MsgAccept = acceptShowText;                                                                       // 显示文本
+                        MsgAccept = MsgAccept.hoverEvent(HoverEvent.showText(acceptHoverShowText));                                 // 悬停文本
+                        MsgAccept = MsgAccept.clickEvent(ClickEvent.runCommand(acceptClickCmd));                                    // 执行指令
                         componentOneLine = componentOneLine.append(MsgAccept);
                     }else if(c.equals(componentDeny)){                      // 如果是拒绝的字符串, 那么需要添加点击事件
-                        Component MsgDeny = Component.text("[拒绝]").color(TextColor.color(255, 0, 0));             // 显示文本
-                        MsgDeny = MsgDeny.hoverEvent(HoverEvent.showText(ColorToCom.colorStringToComponent("点击拒绝传送")));         // 悬停文本
-                        MsgDeny = MsgDeny.clickEvent(ClickEvent.runCommand("/tpdeny"));                                             // 执行指令
+                        Component MsgDeny = denyShowText;                                                                           // 显示文本
+                        MsgDeny = MsgDeny.hoverEvent(HoverEvent.showText(denyHoverShowText));                                       // 悬停文本
+                        MsgDeny = MsgDeny.clickEvent(ClickEvent.runCommand(denyClickCmd));                                          // 执行指令
                         componentOneLine = componentOneLine.append(MsgDeny);
                     }else{                                                  // 如果都不是, 那么直接追加
                         componentOneLine = componentOneLine.append(c);
@@ -289,7 +289,7 @@ public final class HhPlayerTp extends JavaPlugin implements CommandExecutor {
                 playerChatMessage.add(componentOneLine);
             }
         }else{
-            Log.info("listchat_box_text = null");
+            Log.warning("playerChatBoxText = null");
         }
     }
 

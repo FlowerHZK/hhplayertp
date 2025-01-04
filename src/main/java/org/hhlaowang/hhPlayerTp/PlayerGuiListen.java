@@ -1,9 +1,6 @@
 package org.hhlaowang.hhPlayerTp;
 
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.event.ClickEvent;
-import net.kyori.adventure.text.event.HoverEvent;
-import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -11,7 +8,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
-import org.jetbrains.annotations.NotNull;
 import me.clip.placeholderapi.PlaceholderAPI;
 
 import java.util.ArrayList;
@@ -46,18 +42,19 @@ public class PlayerGuiListen implements Listener {
                         String destPlayerName = playerGuiDataOne.serverPlayerList.get(idx);
                         Player destPlayer = Bukkit.getPlayer(destPlayerName);
                         if(destPlayer != null){
-                            // 左键: 向目标玩家destPlayerName玩家发送tpa的执行
+                            // 左键: 向目标玩家destPlayerName玩家发送指定的指令
                             if(e.getClick() == ClickType.LEFT){
                                 String commandToExecute = PlaceholderAPI.setPlaceholders(destPlayer, playerCmdLeft);
                                 Bukkit.getServer().dispatchCommand(player, commandToExecute);
                             }
-                            // 右键: 向目标玩家destPlayerName玩家发送tpahere的执行
+                            // 右键: 向目标玩家destPlayerName玩家发送指定的指令
                             else if(e.getClick() == ClickType.RIGHT){
                                 String commandToExecute = PlaceholderAPI.setPlaceholders(destPlayer, playerCmdRight);
                                 Bukkit.getServer().dispatchCommand(player, commandToExecute);
                             }
 
                             // 向目标玩家发送聊天框点击事件
+                            genPlayerChatMessage(player);     // 生成目标玩家的聊天框内容(解析papi), 变量所有者为发出请求的玩家
                             for(Component p:playerChatMessage){
                                 destPlayer.sendMessage(p);
                             }
@@ -65,18 +62,18 @@ public class PlayerGuiListen implements Listener {
                         break;
                     }
                 }
+            }else if(true){     // 这里添加指令按钮的响应(可以执行任何指令)
+
             }
         }
     }
 
     // 此段代码为AI生成代码 FIXME 后续需要整理代码, 移动带其他地方
-    // FIXME 可能存在问题: input中有papi的变量, 但是在这里并没有作出相应的解析
-    // FIXME 可以考虑在外面解析好了再传入参数进行处理
-    // 分割字符串, 并转为Component
+    // 最后: 分割字符串, 并解析颜色代码&或§转为Component
     public static List<Component> splitStringToComponents(String input) {
         List<Component> components = new ArrayList<>();
         // 定义匹配 [accept] 和 [deny] 的正则表达式模式
-        Pattern specialPattern = Pattern.compile("\\[accept\\]|\\[deny\\]");
+        Pattern specialPattern = Pattern.compile("\\[accept]|\\[deny]");
         Matcher specialMatcher = specialPattern.matcher(input);
 
         int start = 0;
