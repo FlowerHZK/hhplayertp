@@ -42,6 +42,10 @@ public class PlayerGuiListen implements Listener {
                         String destPlayerName = playerGuiDataOne.serverPlayerList.get(idx);
                         Player destPlayer = Bukkit.getPlayer(destPlayerName);
                         if(destPlayer != null){
+                            if(destPlayer.equals(player)){
+                                player.sendMessage(ColorToCom.colorStringToComponent("&4你不能向自己发送传送请求"));
+                                break;
+                            }
                             // 左键: 向目标玩家destPlayerName玩家发送指定的指令
                             if(e.getClick() == ClickType.LEFT){
                                 String commandToExecute = PlaceholderAPI.setPlaceholders(destPlayer, playerCmdLeft);
