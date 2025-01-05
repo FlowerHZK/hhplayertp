@@ -275,12 +275,12 @@ public final class HhPlayerTp extends JavaPlugin implements CommandExecutor {
                     if(c.equals(componentAccept)){                          // 如果是同意的字符串, 那么需要添加点击事件
                         Component MsgAccept = acceptShowText;                                                                       // 显示文本
                         MsgAccept = MsgAccept.hoverEvent(HoverEvent.showText(acceptHoverShowText));                                 // 悬停文本
-                        MsgAccept = MsgAccept.clickEvent(ClickEvent.runCommand(acceptClickCmd));                                    // 执行指令
+                        MsgAccept = MsgAccept.clickEvent(ClickEvent.runCommand("/" + acceptClickCmd));                                    // 执行指令
                         componentOneLine = componentOneLine.append(MsgAccept);
                     }else if(c.equals(componentDeny)){                      // 如果是拒绝的字符串, 那么需要添加点击事件
                         Component MsgDeny = denyShowText;                                                                           // 显示文本
                         MsgDeny = MsgDeny.hoverEvent(HoverEvent.showText(denyHoverShowText));                                       // 悬停文本
-                        MsgDeny = MsgDeny.clickEvent(ClickEvent.runCommand(denyClickCmd));                                          // 执行指令
+                        MsgDeny = MsgDeny.clickEvent(ClickEvent.runCommand("/" + denyClickCmd));                                          // 执行指令
                         componentOneLine = componentOneLine.append(MsgDeny);
                     }else{                                                  // 如果都不是, 那么直接追加
                         componentOneLine = componentOneLine.append(c);

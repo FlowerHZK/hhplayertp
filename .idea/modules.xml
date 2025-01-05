@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/hhPlayerTp.iml" filepath="$PROJECT_DIR$/hhPlayerTp.iml" />
+      <module fileurl="file://$PROJECT_DIR$/hhplayertp.iml" filepath="$PROJECT_DIR$/hhplayertp.iml" />
     </modules>
   </component>
 </project>
