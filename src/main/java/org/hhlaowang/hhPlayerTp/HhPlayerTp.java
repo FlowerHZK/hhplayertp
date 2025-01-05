@@ -21,10 +21,11 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import com.cryptomorin.xseries.profiles.builder.XSkull;
+import com.cryptomorin.xseries.profiles.objects.Profileable;
 
 import java.io.File;
 import java.util.*;
@@ -315,6 +316,17 @@ public final class HhPlayerTp extends JavaPlugin implements CommandExecutor {
         return false;
     }
 
+    void ModifyPlayerHeadItemStack(ItemStack input, Player player){
+        try {
+            XSkull.of(input)
+                    .profile(Profileable.of(player.getUniqueId())).apply();
+        } catch (Throwable t) {
+            Log.error("Failed to set skull texture : " + t);
+        }
+        ItemMeta skullMeta = Objects.requireNonNull(input.getItemMeta());
+        input.setItemMeta(skullMeta);
+    }
+
     void GuiOpen(Player player){
         PlayerGuiData playerGuiData = new PlayerGuiData();
         // 1. 创建GUI
@@ -348,10 +360,6 @@ public final class HhPlayerTp extends JavaPlugin implements CommandExecutor {
             if(playerButtons.contains(i) && (playerIdx < playerGuiData.serverPlayerList.size())){
                 ItemMeta meta = new ItemStack(Material.PLAYER_HEAD).getItemMeta();
                 ItemStack playerSkull = new ItemStack(Material.PLAYER_HEAD);
-                SkullMeta skullMeta = (SkullMeta) playerSkull.getItemMeta();
-                // 设置头颅所属玩家的名字（假设是名为"Notch"的玩家）
-                skullMeta.setOwningPlayer(playerGuiData.player);
-                playerSkull.setItemMeta(skullMeta);
                 // 明确文本内容
                 Component component = MiniMessage.miniMessage().deserialize(playerGuiData.serverPlayerList.get(playerIdx));
                 // 设置字体颜色
@@ -373,13 +381,14 @@ public final class HhPlayerTp extends JavaPlugin implements CommandExecutor {
                 listLore.add(loreLine2);
                 meta.lore(listLore);
                 playerSkull.setItemMeta(meta);
+                // 修改玩家头颅的皮肤
+                ModifyPlayerHeadItemStack(playerSkull, Bukkit.getPlayer(playerGuiData.serverPlayerList.get(playerIdx)));
                 // 将玩家头颅放入GUI的第一个格子（索引为0）
                 playerGuiData.openedInventory.setItem(i, playerSkull);
                 playerIdx++;
             }
         }
     }
-
 
     @Override
     public void onDisable() {
