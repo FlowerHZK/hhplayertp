@@ -68,7 +68,7 @@ public final class HhPlayerTp extends JavaPlugin implements CommandExecutor {
     static public Map<Player, PlayerGuiData> playerGuiDatas = new HashMap<>();
 
                 //    按钮名字  按钮{索引, 指令}
-    static public Map<String, UiButton> cmdButtonMaps = new HashMap<>();
+    static public List<UiButton> cmdButtonList = new ArrayList<>();
 
     private List<Integer> GetSlotRange(String slotString) {
         if (slotString.startsWith("[") && slotString.endsWith("]") && slotString.length() >= 2) {
@@ -99,14 +99,14 @@ public final class HhPlayerTp extends JavaPlugin implements CommandExecutor {
     @Override
     public void onEnable() {
         // 初始化日志记录
-        Log.Init("[" + this.getName() + "]");
+        Logger.Init("[" + this.getName() + "]");
 
         // 设置指令处理
         PluginCommand pluginCommand = Bukkit.getPluginCommand("hhPlayerTp");
         if(pluginCommand != null) {
             pluginCommand.setExecutor(this);
         }else{
-            Log.warning("[hhPlayerTp] Plugin command not found");
+            Logger.warning("[hhPlayerTp] Plugin command not found");
         }
         // 注册事件监听
         Bukkit.getPluginManager().registerEvents(new PlayerGuiListen(),this);
@@ -127,22 +127,22 @@ public final class HhPlayerTp extends JavaPlugin implements CommandExecutor {
         nextButtonMaterial = Material.AIR;
         prevButtonCustomModelData = 0;
         nextButtonCustomModelData = 0;
-        cmdButtonMaps = new HashMap<>();
+        cmdButtonList = new ArrayList<>();
 
-        Log.info("--------------------hhplayertp--------------------");
+        Logger.info("--------------------hhplayertp--------------------");
         // 保存默认的config.yml文件, 如果已经存在了, 那么不需要创建
         FileConfiguration config;
         File configFile = new File(this.getDataFolder(), "config.yml");
         if (!configFile.exists()) {
             saveDefaultConfig();
-            Log.warning("config.yml不存在, 正在生成默认的配置文件config.yml");
+            Logger.warning("config.yml不存在, 正在生成默认的配置文件config.yml");
             config = this.getConfig();
         } else {
             config = YamlConfiguration.loadConfiguration(configFile);
         }
         // 获取配置版本
         String version = config.getString("config_version");
-        Log.info("配置文件版本 : " + version);
+        Logger.info("配置文件版本 : " + version);
         // 获取玩家传送菜单标题, 大小
         guiTitle = config.getString("playertp.title", "玩家传送");  // 菜单的标题
         guiLine = config.getInt("playertp.line", 6);              // 菜单的行数
@@ -248,18 +248,21 @@ public final class HhPlayerTp extends JavaPlugin implements CommandExecutor {
                         } else {
                             uiButton.Index = null;
                         }
-                        Log.info(itemName + " Button Location = " + uiButton.Index);
+                        Logger.info(itemName + " Button Location = " + uiButton.Index);
                         // 3. 获取cmd按钮的 CustomModelData
                         uiButton.customModelData = cfSec.getInt(itemName + ".custom_model_data", 0);
-                        Log.info(itemName + " customModelData = " + uiButton.customModelData);
+                        uiButton.display = cfSec.getString(itemName + ".display", "");
+                        Logger.info(itemName + " customModelData = " + uiButton.customModelData);
                         // 4. 获取cmd按钮的命令(cmd)
                         uiButton.cmd = cfSec.getString(itemName + ".cmd");
-                        Log.info(itemName + " cmd = " + uiButton.cmd);
+                        Logger.info(itemName + " cmd = " + uiButton.cmd);
+
+                        cmdButtonList.add(uiButton);
                     }
                 }
             }
         }
-        Log.info("--------------------hhplayertp--------------------");
+        Logger.info("--------------------hhplayertp--------------------");
     }
 
     // 生成玩家聊天框内容
@@ -290,7 +293,7 @@ public final class HhPlayerTp extends JavaPlugin implements CommandExecutor {
                 playerChatMessage.add(componentOneLine);
             }
         }else{
-            Log.warning("playerChatBoxText = null");
+            Logger.warning("playerChatBoxText = null");
         }
     }
 
@@ -306,7 +309,7 @@ public final class HhPlayerTp extends JavaPlugin implements CommandExecutor {
                 }
             }
         }else{
-            Log.info("onCommand length = " + args.length);
+            Logger.info("onCommand length = " + args.length);
             if(args.length == 1){
                 if (args[0].equals("reload")){
                     loadConfig();
@@ -321,7 +324,7 @@ public final class HhPlayerTp extends JavaPlugin implements CommandExecutor {
             XSkull.of(input)
                     .profile(Profileable.of(player.getUniqueId())).apply();
         } catch (Throwable t) {
-            Log.error("Failed to set skull texture : " + t);
+            Logger.error("Failed to set skull texture : " + t);
         }
         ItemMeta skullMeta = Objects.requireNonNull(input.getItemMeta());
         input.setItemMeta(skullMeta);
@@ -386,6 +389,18 @@ public final class HhPlayerTp extends JavaPlugin implements CommandExecutor {
                 // 将玩家头颅放入GUI的第一个格子（索引为0）
                 playerGuiData.openedInventory.setItem(i, playerSkull);
                 playerIdx++;
+            }else{
+                UiButton uibutton = UiButton.UiButtonMapContainIndex(HhPlayerTp.cmdButtonList, i);
+                if(uibutton != null){     // 这里添加指令按钮的响应(可以执行任何指令)
+                    ItemStack itemStack = new ItemStack(uibutton.material);
+                    ItemMeta itemMeta = itemStack.getItemMeta();
+                    itemMeta.displayName(ColorToCom.colorStringToComponent(uibutton.display));
+                    if(uibutton.customModelData != 0){
+                        itemMeta.setCustomModelData(uibutton.customModelData);
+                    }
+                    itemStack.setItemMeta(itemMeta);
+                    playerGuiData.openedInventory.setItem(i, itemStack);
+                }
             }
         }
     }

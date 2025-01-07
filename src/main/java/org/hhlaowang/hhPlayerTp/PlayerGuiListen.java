@@ -66,8 +66,12 @@ public class PlayerGuiListen implements Listener {
                         break;
                     }
                 }
-            }else if(true){     // 这里添加指令按钮的响应(可以执行任何指令)
-
+            }else{
+                UiButton uibutton = UiButton.UiButtonMapContainIndex(HhPlayerTp.cmdButtonList, RawSlot);
+                if(uibutton != null){     // 这里添加指令按钮的响应(可以执行任何指令)
+                    String commandToExecute = PlaceholderAPI.setPlaceholders(player, uibutton.cmd);
+                    Bukkit.getServer().dispatchCommand(player, commandToExecute);
+                }
             }
         }
     }

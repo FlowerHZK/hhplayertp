@@ -4,4 +4,4 @@ org\hhlaowang\hhPlayerTp\PlayerGuiListen.class
 org\hhlaowang\hhPlayerTp\HhPlayerTp.class
 org\hhlaowang\hhPlayerTp\HhPlayerTp$CustomHolder.class
 org\hhlaowang\hhPlayerTp\UiButton.class
-org\hhlaowang\hhPlayerTp\Log.class
+org\hhlaowang\hhPlayerTp\Logger.class
