@@ -3,13 +3,13 @@ config_version: '1.1'
 # 玩家传送界面的配置
 playertp:
   line: 6     # 菜单有多少行, 1-6
-  title: '玩家传送'
+  title: ':offset_-8::hhplayertp_menu:'
   items:                  # fun: cmd, next_page, prev_page, player
     'return':
       display: '返回'
-      slot: [1]
+      slot: [7,8]
       material: 'KELP'
-      custom_model_data: 10008
+      custom_model_data: 10000007
       fun: 'cmd'
       cmd: 'trmenu open 主菜单'
     'next_page':
